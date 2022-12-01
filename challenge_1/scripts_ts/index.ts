@@ -15,7 +15,7 @@ function docQS(
 function docQSA(selector: string): NodeListOf<Node> | null {
 	return doc().querySelectorAll(selector);
 }
-function docGEBI(selector: string): HTMLElement | null {
+function docGEBI(selector: string): HTMLElement | ParentNode | null {
 	return doc().getElementById(selector);
 }
 function lineDecorative(): string {
@@ -25,14 +25,15 @@ function lineDecorative(): string {
 	}
 	return line;
 }
-function resToHTMLElem(response: string): HTMLElement {
-	return new DOMParser().parseFromString(response, "text/html").body;
+function resToHTML(response: string): NodeListOf<ChildNode> {
+	return new DOMParser().parseFromString(response, "text/html").body
+		.childNodes;
 }
 function handleRes(res: string): void {
-	let content: HTMLElement = resToHTMLElem(res);
+	let content: NodeListOf<ChildNode> = resToHTML(res);
 	const btnHeaderInfo: textAndFn = getBtnHeaderAttr();
 	docGEBI("btn__header")!.append(btnHeaderInfo.text);
-	docGEBI("root")!.append(content);
+	for (const htmlElement of content) docGEBI("root")?.append(htmlElement);
 	docGEBI("btn__header")!.addEventListener("click", btnHeaderInfo.fn);
 }
 interface textAndFn extends Object {
@@ -40,7 +41,6 @@ interface textAndFn extends Object {
 	fn: VoidFunction;
 }
 function getBtnHeaderAttr(): textAndFn {
-	log("FUNCA");
 	let textsAndFncs: {
 		edit: textAndFn;
 		view: textAndFn;
@@ -75,9 +75,17 @@ function handleClickToEdit(event: Event): void {
 	log("FUNCANDO");
 	window.location.assign("index.html?mode=edit");
 }
-
+function handleFetchError(): void {
+	let html: string =
+		"<div class='container-fluid bg-danger text-white fs-1 text-center'>";
+	html += "- IMPOSIBLE CARGAR EL CONTENIDO -<br>";
+	html += "SE NECESITA EJECUTAR LA EXTENSION<br><pre>LIVE SERVER</pre>";
+	html += "</div>";
+	docGEBI("root")?.append(html);
+}
 const urlParams: URLSearchParams = new URLSearchParams(location.search);
 const mode: string = urlParams.get("mode") ?? "view";
-fetch(`${location.origin}/modes_SPA/mode_${mode}.html`)
+fetch(`./modes_SPA/mode_${mode}.html`)
 	.then((res) => res.text())
-	.then((res) => handleRes(res));
+	.then((res) => handleRes(res))
+	.catch(() => handleFetchError());
